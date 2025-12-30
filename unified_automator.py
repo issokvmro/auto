@@ -82,21 +82,21 @@ def check_config():
 # =========================================================================================
 # DAB MUSIC CLIENT
 # =========================================================================================
+from curl_cffi import requests as cffi_requests
+
+# =========================================================================================
+# DAB MUSIC CLIENT (Cloudflare Bypass Edition)
+# =========================================================================================
 class DABClient:
     def __init__(self):
         self.cookies = {}
-        if settings.DAB_TOKEN:
-            # If token provided directly (though cookie dict is usually expected by requests)
-            # The original code just returned the token string if present, 
-            # but the search/usage expected a dict or handled it.
-            # We'll assume if it's a raw token string, we might need to format it or login.
-            # For now, let's treat DAB_TOKEN as a potential persistent session cookie if needed,
-            # but 'login' is safer.
-            pass
+        # We might need to persist the session to keep cookies/headers
+        self.session = cffi_requests.Session(impersonate="chrome")
 
     def login(self) -> Dict:
         """Authenticates with DAB and returns cookies."""
         if settings.DAB_TOKEN and isinstance(settings.DAB_TOKEN, dict):
+             self.session.cookies.update(settings.DAB_TOKEN)
              return settings.DAB_TOKEN
 
         logger.info(f"Logging in to DAB as {settings.DAB_EMAIL}...")
@@ -104,18 +104,28 @@ class DABClient:
         payload = {"email": settings.DAB_EMAIL, "password": settings.DAB_PASSWORD}
 
         try:
-            with httpx.Client(timeout=settings.REQUEST_TIMEOUT) as client:
-                response = client.post(url, json=payload, headers={"User-Agent": settings.USER_AGENT})
-                if response.status_code == 200:
-                    self.cookies = dict(response.cookies)
-                    if not self.cookies:
-                        raise Exception("Login successful but no cookies received.")
-                    logger.info("DAB Login successful.")
-                    return self.cookies
-                elif response.status_code == 401:
-                    raise Exception("Invalid credentials.")
-                else:
-                    raise Exception(f"Login failed: {response.status_code} {response.text}")
+            # impersonate="chrome" is key here
+            response = self.session.post(url, json=payload)
+            
+            if response.status_code == 200:
+                self.cookies = dict(response.cookies)
+                if not self.cookies:
+                    # Sometimes cookies are set in the session but not returned explicitly in some weird ways,
+                    # but usually response.cookies is fine.
+                    # Let's double check session cookies
+                    self.cookies = dict(self.session.cookies)
+                
+                if not self.cookies:
+                     raise Exception("Login successful but no cookies received.")
+                     
+                logger.info("DAB Login successful.")
+                return self.cookies
+            elif response.status_code == 401:
+                raise Exception("Invalid credentials.")
+            elif response.status_code == 403:
+                 raise Exception("Cloudflare blocked the login request (403).")
+            else:
+                raise Exception(f"Login failed: {response.status_code} {response.text}")
         except Exception as e:
             logger.error(f"DAB Login Error: {e}")
             raise
@@ -126,18 +136,14 @@ class DABClient:
         params = {"q": query, "type": "track", "limit": 5}
         
         try:
-            with httpx.Client(timeout=settings.REQUEST_TIMEOUT) as client:
-                response = client.get(url, params=params, cookies=self.cookies, headers={"User-Agent": settings.USER_AGENT})
-                if response.status_code == 200:
-                    data = response.json()
-                    # Unified extraction from daball.py
-                    return data.get("tracks", data.get("data", data.get("results", [])))
-                elif response.status_code == 401:
-                    # Token might have expired, try re-login? 
-                    # For simplicity, just raise
-                    raise Exception("DAB Token expired.")
-                else:
-                    raise Exception(f"Search failed: {response.status_code}")
+            response = self.session.get(url, params=params)
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("tracks", data.get("data", data.get("results", [])))
+            elif response.status_code == 401:
+                raise Exception("DAB Token expired.")
+            else:
+                raise Exception(f"Search failed: {response.status_code}")
         except Exception as e:
             logger.error(f"Search Error: {e}")
             return []
@@ -148,41 +154,42 @@ class DABClient:
         params = {"trackId": track_id}
 
         try:
-            with httpx.Client(timeout=settings.REQUEST_TIMEOUT) as client:
-                # Get Stream URL
-                resp = client.get(stream_url_endpoint, params=params, cookies=self.cookies, headers={"User-Agent": settings.USER_AGENT})
-                if resp.status_code != 200:
-                    raise Exception(f"Failed to get stream URL: {resp.status_code}")
-                
-                data = resp.json()
-                download_url = data.get("url")
-                if not download_url:
-                    raise Exception("No download URL in response.")
+            # Get Stream URL
+            resp = self.session.get(stream_url_endpoint, params=params)
+            if resp.status_code != 200:
+                raise Exception(f"Failed to get stream URL: {resp.status_code}")
+            
+            data = resp.json()
+            download_url = data.get("url")
+            if not download_url:
+                raise Exception("No download URL in response.")
 
-                # Prepare Filename
-                def sanitize(n): return "".join(c for c in n if c.isalnum() or c in (' ', '-', '_')).strip()
-                
-                artist = sanitize(metadata.get('artist', 'Unknown'))
-                title = sanitize(metadata.get('title', f'track_{track_id}'))
-                filename = f"{artist} - {title}.flac"
-                
-                settings.DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
-                file_path = settings.DOWNLOAD_DIR / filename
-                
-                logger.info(f"Downloading: {filename}")
-                
-                # Download File
-                with client.stream("GET", download_url, headers={"User-Agent": settings.USER_AGENT}) as dl_resp:
-                    if dl_resp.status_code != 200:
-                        raise Exception(f"Stream download failed: {dl_resp.status_code}")
-                    
-                    with open(file_path, "wb") as f:
-                        for chunk in dl_resp.iter_bytes():
-                            f.write(chunk)
-                            
-                # Tagging
-                self._tag_file(file_path, metadata)
-                return file_path
+            # Prepare Filename
+            def sanitize(n): return "".join(c for c in n if c.isalnum() or c in (' ', '-', '_')).strip()
+            
+            artist = sanitize(metadata.get('artist', 'Unknown'))
+            title = sanitize(metadata.get('title', f'track_{track_id}'))
+            filename = f"{artist} - {title}.flac"
+            
+            settings.DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+            file_path = settings.DOWNLOAD_DIR / filename
+            
+            logger.info(f"Downloading: {filename}")
+            
+            # Download File
+            # stream=True is supported by curl_cffi
+            resp = self.session.get(download_url, stream=True)
+            if resp.status_code != 200:
+                raise Exception(f"Stream download failed: {resp.status_code}")
+            
+            with open(file_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        
+            # Tagging (keep using existing logic, maybe fetch cover with session too)
+            self._tag_file(file_path, metadata)
+            return file_path
 
         except Exception as e:
             logger.error(f"Download Error for {track_id}: {e}")
@@ -201,15 +208,15 @@ class DABClient:
             cover_url = metadata.get('cover_url')
             if cover_url:
                 try:
-                    with httpx.Client(timeout=10) as c:
-                        r = c.get(cover_url)
-                        if r.status_code == 200:
-                            pic = Picture()
-                            pic.type = 3
-                            pic.mime = "image/png" if r.content.startswith(b'\x89PNG') else "image/jpeg"
-                            pic.desc = "Cover"
-                            pic.data = r.content
-                            audio.add_picture(pic)
+                    # Use the same session for images, maybe faster/consistent
+                    r = self.session.get(cover_url, timeout=10)
+                    if r.status_code == 200:
+                        pic = Picture()
+                        pic.type = 3
+                        pic.mime = "image/png" if r.content.startswith(b'\x89PNG') else "image/jpeg"
+                        pic.desc = "Cover"
+                        pic.data = r.content
+                        audio.add_picture(pic)
                 except Exception as e:
                     logger.warning(f"Could not fetch cover art: {e}")
             

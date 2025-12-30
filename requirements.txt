@@ -8,4 +8,4 @@ python-dotenv>=1.0.0
 pyyaml>=6.0.1
 rich>=13.0.0
 dropbox
-
+curl_cffi>=0.5.10
