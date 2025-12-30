@@ -42,6 +42,7 @@ logger = logging.getLogger("UnifiedAuto")
 env_path = Path.cwd() / ".env"
 loaded = load_dotenv(dotenv_path=env_path, override=True)
 print(f"DEBUG: Loading .env from {env_path}, Success={loaded}")
+print(f"DEBUG: All Environment Keys starting with DAB: {[k for k in os.environ.keys() if k.startswith('DAB')]}")
 print(f"DEBUG: DAB_COOKIE_STRING present? {'Yes' if os.getenv('DAB_COOKIE_STRING') else 'No'}")
 if os.getenv("DAB_COOKIE_STRING"):
     print(f"DEBUG: Cookie string length: {len(os.getenv('DAB_COOKIE_STRING'))}")
@@ -100,34 +101,32 @@ from curl_cffi import requests as cffi_requests
 class DABClient:
     def __init__(self):
         self.cookies = {}
-        # We might need to persist the session to keep cookies/headers
-        # Try a slightly older chrome or safari if default chrome fails 
-        self.session = cffi_requests.Session(impersonate="chrome110")
+        # Use a newer Chrome version
+        self.session = cffi_requests.Session(impersonate="chrome120")
+        # Do NOT manually overwrite User-Agent or intricate headers as it breaks the impersonation fingerprint.
+        # Just add the essential functional headers.
         self.session.headers.update({
-            "User-Agent": settings.USER_AGENT, # Will be overwritten by impersonate, but good to have fallback logic if we switch libraries
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-US,en;q=0.9",
             "Referer": f"{settings.DAB_BASE_URL}/",
             "Origin": settings.DAB_BASE_URL,
-            "Connection": "keep-alive",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
         })
 
     def login(self) -> Dict:
         """Authenticates with DAB and returns cookies."""
-        # 1. Manual Cookie Fallback (Highest Priority for Server Bypass)
-        # If the user provides a raw cookie string in .env as DAB_COOKIE_STRING, use it.
+        # 1. Manual Cookie Fallback
+        # NOTE: cf_clearance is often IP-bound. If copying from PC to Server fails, 
+        # it means we MUST generate cookies on the server.
         manual_chk = os.getenv("DAB_COOKIE_STRING")
         if manual_chk:
-            logger.info("Using manual DAB_COOKIE_STRING from .env (Bypassing Login)...")
-            # Simple parse: "key=value; key2=val2"
+            logger.info("Using manual DAB_COOKIE_STRING from .env...")
             for cookie in manual_chk.split(';'):
                 if '=' in cookie:
                     k, v = cookie.strip().split('=', 1)
                     self.cookies[k] = v
             self.session.cookies.update(self.cookies)
+            # We don't return here immediately, we let the properties be set, 
+            # but we skip the POST login if we are confident.
+            # However, if the manual cookies are IP-blocked, this will fail at search.
+            # Let's try to proceed.
             return self.cookies
 
         if settings.DAB_TOKEN and isinstance(settings.DAB_TOKEN, dict):
