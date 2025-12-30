@@ -1,3 +1,5 @@
+httpx
+mutagen
 requests>=2.31.0
 watchdog>=3.0.0
 torrentool>=1.1.1

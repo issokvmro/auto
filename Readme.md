@@ -1,5 +1,10 @@
 python -m rd_automator.cli start
-python main.py batch songs.txt
+python dab.py -- login 
+python dab.py -- search hello
+python dab.py batch songs.txt
+
+
+
 
 # Real-Debrid Torrent Automator
 
@@ -88,3 +93,4 @@ upload_mode: "torrent"
     ```
     Opens the configuration file.
 
+python -m rd_automator.cli start

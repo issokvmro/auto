@@ -1,3 +1,4 @@
+
 import os
 import sys
 import time
@@ -7,15 +8,23 @@ import subprocess
 import uuid
 import yaml
 import requests
+import typer
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Callable
 from concurrent.futures import ThreadPoolExecutor
+from dotenv import load_dotenv
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from dotenv import load_dotenv
-from torrentool.api import Torrent
+from rich.console import Console
+from rich.table import Table
 
-# Try importing dropbox, but don't fail immediately if missing
+# Third-party imports that might need installation checks
+try:
+    from torrentool.api import Torrent
+except ImportError:
+    print("Error: 'torrentool' not found. Please pip install torrentool.")
+    sys.exit(1)
+
 try:
     import dropbox
     from dropbox.files import WriteMode, CommitInfo, UploadSessionCursor
@@ -34,6 +43,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("rd_automator")
+console = Console()
 
 # =========================================================================================
 # CONFIGURATION
@@ -333,8 +343,6 @@ class SeederManager:
         
         logger.info(f"Starting aria2c: {' '.join(str(x) for x in cmd)}")
         
-        # log_file = open("aria2c_debug.log", "a") # Simplification: direct write inside try/except block or context manager would be better but this persists
-        
         try:
              with open("aria2c_debug.log", "a") as log_file:
                 process = subprocess.Popen(
@@ -588,6 +596,61 @@ class Orchestrator:
                 logger.info("Shutting down executor...")
                 self.executor.shutdown(wait=False)
 
+def start_watching():
+    orchestrator = Orchestrator()
+    orchestrator.start()
+
+# =========================================================================================
+# CLI / MAIN
+# =========================================================================================
+app = typer.Typer(help="Real-Debrid Torrent Automator CLI (Consolidated)")
+
+@app.command()
+def start():
+    """
+    Start the directory watcher.
+    """
+    console.print(f"[green]Starting watcher on {settings.watch_path}[/green]")
+    console.print(f"[blue]Outputting .torrent files to {settings.torrent_output_path}[/blue]")
+    try:
+        start_watching()
+    except KeyboardInterrupt:
+        console.print("[yellow]Stopping...[/yellow]")
+
+@app.command()
+def status():
+    """
+    Show recent activity or status.
+    """
+    try:
+        rd = RealDebridClient(token=settings.rd_api_token)
+        user_info = rd.get_user_info()
+        console.print(f"[bold]User:[/bold] {user_info.get('username')}")
+        console.print(f"[bold]Premium:[/bold] {user_info.get('type')}")
+        console.print(f"[bold]Expiration:[/bold] {user_info.get('expiration')}")
+        
+    except Exception as e:
+        console.print(f"[red]Error fetching status: {e}[/red]")
+        console.print("[yellow]Check your RD_API_TOKEN in .env[/yellow]")
+
+@app.command()
+def config():
+    """
+    Opens the configuration file in the default editor.
+    """
+    config_path = Path("config.yaml")
+    if not config_path.exists():
+        console.print("[red]Config file config.yaml not found![/red]")
+        return
+    
+    console.print(f"Opening {config_path}...")
+    if os.name == 'nt':
+        os.startfile(config_path)
+    elif sys.platform == 'darwin':
+        subprocess.call(('open', config_path))
+    else:
+        subprocess.call(('xdg-open', config_path))
+
 def print_banner():
     banner = r"""
 __________________       _____          __                         __                
@@ -597,12 +660,11 @@ __________________       _____          __                         __
  |____|_  /_______  / \____|__  /____/ |__|  \____/|__|_|  (____  /__|  \____/|__|   
         \/        \/          \/                         \/     \/                      
                                                                     
-         Real-Debrid Automator By Kiingkid For Debrid Vault!
+         Real-Debrid Automator (Consolidated)
     """
     print(banner)
     print("\n" + "="*70)
 
 if __name__ == "__main__":
     print_banner()
-    orchestrator = Orchestrator()
-    orchestrator.start()
+    app()
