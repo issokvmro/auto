@@ -1,7 +1,7 @@
-python -m rd_automator.cli start
-python dab.py -- login 
-python dab.py -- search hello
-python dab.py batch songs.txt
+python -m auto.cli start
+python daball.py -- login 
+python daball.py -- search hello
+python daball.py batch songs.txt
 
 
 
