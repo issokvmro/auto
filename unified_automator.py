@@ -38,11 +38,18 @@ logger = logging.getLogger("UnifiedAuto")
 # =========================================================================================
 # CONFIGURATION
 # =========================================================================================
-load_dotenv()
+# Force reload of .env file to ensure we get the latest changes
+env_path = Path.cwd() / ".env"
+loaded = load_dotenv(dotenv_path=env_path, override=True)
+print(f"DEBUG: Loading .env from {env_path}, Success={loaded}")
+print(f"DEBUG: DAB_COOKIE_STRING present? {'Yes' if os.getenv('DAB_COOKIE_STRING') else 'No'}")
+if os.getenv("DAB_COOKIE_STRING"):
+    print(f"DEBUG: Cookie string length: {len(os.getenv('DAB_COOKIE_STRING'))}")
 
 class Config:
     # DAB Config
     DAB_BASE_URL = "https://dab.yeet.su"
+
     DAB_API_URL = f"{DAB_BASE_URL}/api"
     # Support both naming conventions from previous files
     DAB_EMAIL = os.getenv("DAB_EMAIL") or os.getenv("DAB_USERNAME")
@@ -87,14 +94,42 @@ from curl_cffi import requests as cffi_requests
 # =========================================================================================
 # DAB MUSIC CLIENT (Cloudflare Bypass Edition)
 # =========================================================================================
+# =========================================================================================
+# DAB MUSIC CLIENT (Cloudflare Bypass Edition)
+# =========================================================================================
 class DABClient:
     def __init__(self):
         self.cookies = {}
         # We might need to persist the session to keep cookies/headers
-        self.session = cffi_requests.Session(impersonate="chrome")
+        # Try a slightly older chrome or safari if default chrome fails 
+        self.session = cffi_requests.Session(impersonate="chrome110")
+        self.session.headers.update({
+            "User-Agent": settings.USER_AGENT, # Will be overwritten by impersonate, but good to have fallback logic if we switch libraries
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": f"{settings.DAB_BASE_URL}/",
+            "Origin": settings.DAB_BASE_URL,
+            "Connection": "keep-alive",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+        })
 
     def login(self) -> Dict:
         """Authenticates with DAB and returns cookies."""
+        # 1. Manual Cookie Fallback (Highest Priority for Server Bypass)
+        # If the user provides a raw cookie string in .env as DAB_COOKIE_STRING, use it.
+        manual_chk = os.getenv("DAB_COOKIE_STRING")
+        if manual_chk:
+            logger.info("Using manual DAB_COOKIE_STRING from .env (Bypassing Login)...")
+            # Simple parse: "key=value; key2=val2"
+            for cookie in manual_chk.split(';'):
+                if '=' in cookie:
+                    k, v = cookie.strip().split('=', 1)
+                    self.cookies[k] = v
+            self.session.cookies.update(self.cookies)
+            return self.cookies
+
         if settings.DAB_TOKEN and isinstance(settings.DAB_TOKEN, dict):
              self.session.cookies.update(settings.DAB_TOKEN)
              return settings.DAB_TOKEN
@@ -104,15 +139,13 @@ class DABClient:
         payload = {"email": settings.DAB_EMAIL, "password": settings.DAB_PASSWORD}
 
         try:
-            # impersonate="chrome" is key here
+            # impersonate="chrome" is usually good, trying chrome110 for variation
             response = self.session.post(url, json=payload)
             
             if response.status_code == 200:
                 self.cookies = dict(response.cookies)
+                # ... (rest of logic same) ...
                 if not self.cookies:
-                    # Sometimes cookies are set in the session but not returned explicitly in some weird ways,
-                    # but usually response.cookies is fine.
-                    # Let's double check session cookies
                     self.cookies = dict(self.session.cookies)
                 
                 if not self.cookies:
@@ -123,7 +156,12 @@ class DABClient:
             elif response.status_code == 401:
                 raise Exception("Invalid credentials.")
             elif response.status_code == 403:
-                 raise Exception("Cloudflare blocked the login request (403).")
+                 raise Exception("Cloudflare blocked the login request (403). \n"
+                                 "FIX: Please export your browser cookies from your local PC.\n"
+                                 "1. Go to dab.yeet.su on your PC and log in.\n"
+                                 "2. Open DevTools (F12) -> Application -> Cookies.\n"
+                                 "3. Copy the 'connect.sid' or all cookies as a string.\n"
+                                 "4. Add `DAB_COOKIE_STRING='key=value; key2=value'` to your .env on the server.")
             else:
                 raise Exception(f"Login failed: {response.status_code} {response.text}")
         except Exception as e:

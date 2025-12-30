@@ -1,0 +1,50 @@
+2025-12-30 14:55:48,761 - UnifiedAuto - INFO - Logging in to DAB as tested0pvmro@gmail.com...
+2025-12-30 14:55:49,015 - UnifiedAuto - ERROR - DAB Login Error: [Errno 11001] getaddrinfo failed
+2025-12-30 14:56:41,740 - UnifiedAuto - INFO - Logging in to DAB as tested0pvmro@gmail.com...
+2025-12-30 14:56:42,965 - httpx - INFO - HTTP Request: POST https://dab.yeet.su/api/auth/login "HTTP/1.1 200 OK"
+2025-12-30 14:56:42,966 - UnifiedAuto - INFO - DAB Login successful.
+2025-12-30 14:56:42,967 - UnifiedAuto - INFO - Found 8 songs to process.
+2025-12-30 14:56:42,967 - UnifiedAuto - INFO - 
+--- Processing [1/8]: Junior dos Santos Silva - Für Elise ---
+2025-12-30 14:56:44,806 - httpx - INFO - HTTP Request: GET https://dab.yeet.su/api/search?q=Junior+dos+Santos+Silva+-+F%C3%BCr+Elise&type=track&limit=5 "HTTP/1.1 200 OK"
+2025-12-30 14:56:47,463 - UnifiedAuto - INFO - Stopped by user.
+2025-12-30 14:57:14,483 - UnifiedAuto - INFO - Logging in to DAB as tested0pvmro@gmail.com...
+2025-12-30 14:57:15,480 - httpx - INFO - HTTP Request: POST https://dab.yeet.su/api/auth/login "HTTP/1.1 200 OK"
+2025-12-30 14:57:15,481 - UnifiedAuto - INFO - DAB Login successful.
+2025-12-30 14:57:15,481 - UnifiedAuto - INFO - Found 8 songs to process.
+2025-12-30 14:57:15,481 - UnifiedAuto - INFO - 
+--- Processing [1/8]: Junior dos Santos Silva - Für Elise ---
+2025-12-30 14:57:16,443 - httpx - INFO - HTTP Request: GET https://dab.yeet.su/api/search?q=Junior+dos+Santos+Silva+-+F%C3%BCr+Elise&type=track&limit=5 "HTTP/1.1 200 OK"
+2025-12-30 14:57:17,469 - httpx - INFO - HTTP Request: GET https://dab.yeet.su/api/stream?trackId=264564738 "HTTP/1.1 200 OK"
+2025-12-30 14:57:17,470 - UnifiedAuto - INFO - Downloading: Ludwig van Beethoven - Für Elise.flac
+2025-12-30 14:57:17,744 - httpx - INFO - HTTP Request: GET https://streaming-qobuz-std.akamaized.net/file?uid=8886245&eid=264564738&fmt=7&profile=raw&app_id=798273057&cid=3479914&etsp=1767090436&hmac=tjo9fsA8l-7LBdZVgDNvb33glkk "HTTP/1.1 200 OK"
+2025-12-30 14:57:19,625 - UnifiedAuto - INFO - Uploading Ludwig van Beethoven - Für Elise.flac to Dropbox (20.18 MB)...
+2025-12-30 14:57:19,631 - dropbox - INFO - Refreshing access token.
+2025-12-30 14:57:20,131 - dropbox - INFO - Request to files/upload
+2025-12-30 14:57:24,669 - UnifiedAuto - INFO - Upload complete.
+2025-12-30 14:57:24,670 - dropbox - INFO - Request to sharing/list_shared_links
+2025-12-30 14:57:25,145 - dropbox - INFO - Request to sharing/create_shared_link_with_settings
+2025-12-30 14:57:30,572 - UnifiedAuto - INFO - SUCCESS! Unrestricted Link: https://mum1-4.download.real-debrid.com/d/7WPHIFHMLIGAG32/Ludwig%20van%20Beethoven%20-%20Fr%20Elise.flac
+2025-12-30 14:57:30,575 - UnifiedAuto - INFO - Deleted local file.
+2025-12-30 14:57:30,575 - dropbox - INFO - Refreshing access token.
+2025-12-30 14:57:31,093 - dropbox - INFO - Request to files/delete_v2
+2025-12-30 14:57:31,791 - UnifiedAuto - INFO - Deleted Ludwig van Beethoven - Für Elise.flac from Dropbox.
+2025-12-30 14:57:31,792 - UnifiedAuto - INFO - 
+--- Processing [2/8]: Kenndog - Beethoven ---
+2025-12-30 14:57:33,544 - httpx - INFO - HTTP Request: GET https://dab.yeet.su/api/search?q=Kenndog+-+Beethoven&type=track&limit=5 "HTTP/1.1 200 OK"
+2025-12-30 14:57:36,007 - httpx - INFO - HTTP Request: GET https://dab.yeet.su/api/stream?trackId=129691823 "HTTP/1.1 200 OK"
+2025-12-30 14:57:36,019 - UnifiedAuto - INFO - Downloading: Kenndog - Beethoven.flac
+2025-12-30 14:57:36,072 - httpx - INFO - HTTP Request: GET https://streaming-qobuz-std.akamaized.net/file?uid=8886245&eid=129691823&fmt=6&profile=raw&app_id=798273057&cid=3479914&etsp=1767090454&hmac=42fvdfsDz-Bsrr8_p5V41WFnlF8 "HTTP/1.1 200 OK"
+2025-12-30 14:57:37,168 - UnifiedAuto - INFO - Uploading Kenndog - Beethoven.flac to Dropbox (13.39 MB)...
+2025-12-30 14:57:37,172 - dropbox - INFO - Refreshing access token.
+2025-12-30 14:57:37,741 - dropbox - INFO - Request to files/upload
+2025-12-30 14:57:39,890 - UnifiedAuto - INFO - Upload complete.
+2025-12-30 14:57:39,890 - dropbox - INFO - Request to sharing/list_shared_links
+2025-12-30 14:57:40,403 - dropbox - INFO - Request to sharing/create_shared_link_with_settings
+2025-12-30 15:08:46,098 - UnifiedAuto - INFO - Logging in to DAB as tested0pvmro@gmail.com...
+2025-12-30 15:08:46,898 - UnifiedAuto - INFO - DAB Login successful.
+2025-12-30 15:08:46,899 - UnifiedAuto - INFO - Found 8 songs to process.
+2025-12-30 15:08:46,899 - UnifiedAuto - INFO - 
+--- Processing [1/8]: Junior dos Santos Silva - Für Elise ---
+2025-12-30 15:08:48,024 - UnifiedAuto - INFO - Downloading: Ludwig van Beethoven - Für Elise.flac
+2025-12-30 15:08:49,530 - UnifiedAuto - INFO - Stopped by user.
