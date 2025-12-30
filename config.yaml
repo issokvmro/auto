@@ -1,0 +1,28 @@
+# Real-Debrid Torrent Automator Configuration
+
+# Path to monitor for new files
+watch_path: "./watch_folder"
+
+# Upload Mode: "torrent" (default) or "hoster" (BayFiles)
+upload_mode: "hoster"  # or "torrent"
+
+# Path to store successful torrent files (optional, default: ./torrents)
+torrent_output_path: "./torrents"
+
+# List of tracker URLs to add to generated torrents
+trackers:
+  - "udp://tracker.opentrackr.org:1337/announce"
+  - "udp://open.demonii.com:1337/announce"
+  - "udp://tracker.coppersurfer.tk:6969/announce"
+  - "udp://tracker.leechers-paradise.org:6969/announce"
+  - "udp://9.rarbg.me:2710/announce"
+  - "udp://p4p.arenabg.com:1337/announce"
+  - "udp://tracker.internetwarriors.net:1337/announce"
+  - "http://tracker.opentrackr.org:1337/announce"
+
+# Piece size in bytes (default: auto-calculated or 16MB)
+# 16MB = 16777216
+piece_size: 16777216
+
+# Private flag (0 or 1)
+private: 0
